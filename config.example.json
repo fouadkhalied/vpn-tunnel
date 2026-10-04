@@ -1,0 +1,13 @@
+{
+  "private_key": "<base64 32-byte X25519 private key>",
+  "listen_port": 51820,
+  "address": "10.0.0.1/24",
+  "peers": [
+    {
+      "name": "alice",
+      "public_key": "<base64 32-byte X25519 public key>",
+      "endpoint": "203.0.113.5:51820",
+      "allowed_ips": ["10.0.0.2/32"]
+    }
+  ]
+}
