@@ -1,12 +1,11 @@
-// Package noise implements the handshake that produces session keys.
-//
-// Course: Chapter 2, lessons "Noise Protocol Framework" .. key schedule.
-// Primitives to bring in later: X25519 (golang.org/x/crypto/curve25519),
-// BLAKE2s (golang.org/x/crypto/blake2s), HKDF built on BLAKE2s HMAC.
-// WireGuard uses the Noise IKpsk2 pattern; follow the course's variant.
 package noise
 
-import "errors"
+import (
+	"crypto/rand"
+	"errors"
+
+	"golang.org/x/crypto/curve25519"
+)
 
 var ErrNotImplemented = errors.New("not implemented")
 
@@ -16,39 +15,83 @@ type KeyPair struct {
 	Public  [32]byte
 }
 
-// GenerateKeyPair makes a fresh X25519 key pair.
-//
-// TODO: random 32 bytes from crypto/rand, then curve25519.X25519(priv, Basepoint).
-// Remember to clamp the private key.
-func GenerateKeyPair() (KeyPair, error) { return KeyPair{}, ErrNotImplemented }
+// GenerateRandomKeyPair generates a random X25519 key pair.
+func GenerateRandomKeyPair() (KeyPair, error) {
+	var privateKey [32]byte
+
+	_, err := rand.Read(privateKey[:])
+	if err != nil {
+		return KeyPair{}, err
+	}
+
+	// Clamp the private scalar for Curve25519/X25519.
+	privateKey[0] &= 248
+	privateKey[31] &= 127
+	privateKey[31] |= 64
+
+	publicKey, err := curve25519.X25519(
+		privateKey[:],
+		curve25519.Basepoint,
+	)
+	if err != nil {
+		return KeyPair{}, err
+	}
+
+	var public [32]byte
+	copy(public[:], publicKey)
+
+	return KeyPair{
+		Private: privateKey,
+		Public:  public,
+	}, nil
+}
 
 // Handshake is the state for one handshake attempt with one peer.
 type Handshake struct {
 	static     KeyPair
 	peerStatic [32]byte
 	ephemeral  KeyPair
-	chainKey   [32]byte // evolves with every DH via the KDF
-	hash       [32]byte // transcript hash (binds all messages)
+	chainKey   [32]byte // Evolves with every DH via the KDF.
+	hash       [32]byte // Transcript hash binds all messages.
 }
 
+// NewInitiator creates a new handshake from the initiator's
 func NewInitiator(static KeyPair, peerStatic [32]byte) *Handshake {
-	return &Handshake{static: static, peerStatic: peerStatic}
+	return &Handshake{
+		static:     static,
+		peerStatic: peerStatic,
+	}
 }
 
+// NewResponder creates a new handshake from the responder's
 func NewResponder(static KeyPair) *Handshake {
-	return &Handshake{static: static}
+	return &Handshake{
+		static: static,
+	}
 }
 
-// TODO for each: mix DH results into chainKey, update the transcript hash,
-// encrypt the payload with an AEAD keyed from the chain.
-func (h *Handshake) CreateInitiation() ([]byte, error)  { return nil, ErrNotImplemented }
-func (h *Handshake) ConsumeInitiation(msg []byte) error { return ErrNotImplemented }
-func (h *Handshake) CreateResponse() ([]byte, error)    { return nil, ErrNotImplemented }
-func (h *Handshake) ConsumeResponse(msg []byte) error   { return ErrNotImplemented }
+func (h *Handshake) CreateInitiation() ([]byte, error) {
+	return nil, ErrNotImplemented
+}
+
+func (h *Handshake) ConsumeInitiation(msg []byte) error {
+	return ErrNotImplemented
+}
+
+func (h *Handshake) CreateResponse() ([]byte, error) {
+	return nil, ErrNotImplemented
+}
+
+func (h *Handshake) ConsumeResponse(msg []byte) error {
+	return ErrNotImplemented
+}
 
 // DeriveSession splits the final chain key into the two transport keys.
-// Initiator's send key is the responder's receive key and vice versa.
-// Forward secrecy: the ephemeral private keys must be wiped afterwards.
+//
+// The initiator's send key is the responder's receive key,
+// and the initiator's receive key is the responder's send key.
+//
+// Forward secrecy: ephemeral private keys must be wiped afterwards.
 func (h *Handshake) DeriveSession() (send, recv [32]byte, err error) {
 	return send, recv, ErrNotImplemented
 }
