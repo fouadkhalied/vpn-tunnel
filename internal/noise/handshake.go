@@ -1,50 +1,6 @@
 package noise
 
-import (
-	"crypto/rand"
-	"errors"
-
-	"golang.org/x/crypto/curve25519"
-)
-
-var ErrNotImplemented = errors.New("not implemented")
-
-// KeyPair is a long-term or ephemeral X25519 key pair.
-type KeyPair struct {
-	Private [32]byte
-	Public  [32]byte
-}
-
-// GenerateRandomKeyPair generates a random X25519 key pair.
-func GenerateRandomKeyPair() (KeyPair, error) {
-	var privateKey [32]byte
-
-	_, err := rand.Read(privateKey[:])
-	if err != nil {
-		return KeyPair{}, err
-	}
-
-	// Clamp the private scalar for Curve25519/X25519.
-	privateKey[0] &= 248
-	privateKey[31] &= 127
-	privateKey[31] |= 64
-
-	publicKey, err := curve25519.X25519(
-		privateKey[:],
-		curve25519.Basepoint,
-	)
-	if err != nil {
-		return KeyPair{}, err
-	}
-
-	var public [32]byte
-	copy(public[:], publicKey)
-
-	return KeyPair{
-		Private: privateKey,
-		Public:  public,
-	}, nil
-}
+import "crypto/sha256"
 
 // Handshake is the state for one handshake attempt with one peer.
 type Handshake struct {
@@ -68,6 +24,11 @@ func NewResponder(static KeyPair) *Handshake {
 	return &Handshake{
 		static: static,
 	}
+}
+
+// InitialChainKey creates the starting value for our handshake.
+func InitialChainKey() [32]byte {
+	return sha256.Sum256([]byte("My VPN Protocol"))
 }
 
 func (h *Handshake) CreateInitiation() ([]byte, error) {
