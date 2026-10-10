@@ -42,6 +42,14 @@ func ParseIPv4(b []byte) (IPv4Header, error) {
 		return IPv4Header{}, ErrShortPacket
 	}
 
+	total := int(binary.BigEndian.Uint16(b[2:4]))
+	if total < headerLen {
+		return IPv4Header{}, ErrInvalidLength
+	}
+	if total > len(b) {
+		return IPv4Header{}, ErrShortPacket
+	}
+
 	return IPv4Header{
 		Version:  version,
 		IHL:      ihl,
