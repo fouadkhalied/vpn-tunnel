@@ -4,7 +4,7 @@
 package packet
 
 import (
-	"errors"
+	"encoding/binary"
 	"net/netip"
 )
 
@@ -12,11 +12,6 @@ const (
 	ProtoICMP = 1
 	ProtoTCP  = 6
 	ProtoUDP  = 17
-)
-
-var (
-	ErrNotImplemented = errors.New("not implemented")
-	ErrShortPacket    = errors.New("packet too short")
 )
 
 // IPv4Header holds the fields the VPN cares about.
@@ -29,15 +24,30 @@ type IPv4Header struct {
 }
 
 // ParseIPv4 reads the header of an IPv4 packet.
-//
-// TODO:
-//   - byte 0: version (high nibble) and IHL (low nibble)
-//   - bytes 2-3: total length (big endian)
-//   - byte 9: protocol
-//   - bytes 12-15 source, 16-19 destination (netip.AddrFrom4)
-//   - return ErrShortPacket if len(b) < 20 or < IHL*4
-//   - reject Version != 4 (IPv6 can come later)
+
 func ParseIPv4(b []byte) (IPv4Header, error) {
-	_ = b
-	return IPv4Header{}, ErrNotImplemented
+	if len(b) < 20 {
+		return IPv4Header{}, ErrShortPacket
+	}
+
+	version := b[0] >> 4
+	ihl := b[0] & 0x0f
+
+	if version != 4 {
+		return IPv4Header{}, ErrInvalidVersion
+	}
+
+	headerLen := int(ihl) * 4
+	if headerLen < 20 || len(b) < headerLen {
+		return IPv4Header{}, ErrShortPacket
+	}
+
+	return IPv4Header{
+		Version:  version,
+		IHL:      ihl,
+		TotalLen: binary.BigEndian.Uint16(b[2:4]),
+		Protocol: b[9],
+		Src:      netip.AddrFrom4([4]byte{b[12], b[13], b[14], b[15]}),
+		Dst:      netip.AddrFrom4([4]byte{b[16], b[17], b[18], b[19]}),
+	}, nil
 }
