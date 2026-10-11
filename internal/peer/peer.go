@@ -51,11 +51,38 @@ func (p *Peer) SetSession(s *crypto.Session) {
 	p.mu.Unlock()
 }
 
-// SourceAllowed is the inbound half of cryptokey routing: after decryption,
-// the inner packet's source IP must be inside this peer's AllowedIPs.
-//
-// TODO: loop over AllowedIPs and check Contains.
-func (p *Peer) SourceAllowed(src netip.Addr) bool {
-	_ = src
-	return false
+func (p *Peer) Receive(packet []byte, from netip.AddrPort) ([]byte, error) {
+
+	session := p.Session()
+	if session == nil {
+		return nil, ErrNoSession
+	}
+
+	decryptedPacket, err := session.Open(packet)
+	if err != nil {
+		return nil, err
+	}
+
+	p.UpdateEndpoint(from)
+
+	return decryptedPacket, nil
+}
+
+func (p *Peer) Send(plaintext []byte) ([]byte, netip.AddrPort, error) {
+
+	session := p.Session()
+	if session == nil {
+		return nil, netip.AddrPort{}, ErrNoSession
+	}
+
+	if !p.Endpoint().IsValid() {
+		return nil, netip.AddrPort{}, ErrNoEndpoint
+	}
+
+	packet, err := session.Seal(plaintext)
+	if err != nil {
+		return nil, netip.AddrPort{}, err
+	}
+
+	return packet, p.Endpoint(), nil
 }
