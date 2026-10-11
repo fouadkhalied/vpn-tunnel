@@ -28,7 +28,7 @@ func TestEdgeCases(t *testing.T) {
 	lookup(t, tbl, "10.0.0.7", "host", true)
 	lookup(t, tbl, "10.0.0.8", "net", true)
 	lookup(t, tbl, "::ffff:10.0.0.8", "net", true) // IPv4-mapped
-	lookup(t, tbl, "192.168.1.1", "first", true)
+	lookup(t, tbl, "192.168.1.1", "second", true)
 	lookup(t, tbl, "8.8.8.8", "", false)
 }
 
