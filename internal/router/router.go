@@ -47,3 +47,11 @@ func (t *Table) Lookup(dst netip.Addr) (peer string, ok bool) {
 	}
 	return peer, ok
 }
+
+func (t *Table) Allowed(peerName string, src netip.Addr) bool {
+	peer, ok := t.Lookup(src)
+	if !ok || peer != peerName {
+		return false
+	}
+	return true
+}
