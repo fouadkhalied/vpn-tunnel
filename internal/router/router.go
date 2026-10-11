@@ -39,7 +39,7 @@ func (t *Table) Lookup(dst netip.Addr) (peer string, ok bool) {
 		if !r.prefix.Contains(dst) {
 			continue
 		}
-		if bits := r.prefix.Bits(); bits > best {
+		if bits := r.prefix.Bits(); bits >= best {
 			best = bits
 			peer = r.peer
 			ok = true
